@@ -1,16 +1,19 @@
-FROM node:8.15.1
+FROM node:alpine
 
-WORKDIR "/app"
+# Install curl for your start.sh or other scripts
+RUN apk add --no-cache curl
 
-COPY ./package.json ./
+WORKDIR /app
 
+# Copy package files first to leverage Docker cache
+COPY package*.json ./
+
+# Install dependencies (includes cors)
 RUN npm install
 
+# Copy the rest of the application files
 COPY . .
 
 EXPOSE 3000
 
 CMD ["npm", "start"]
-
-
-
