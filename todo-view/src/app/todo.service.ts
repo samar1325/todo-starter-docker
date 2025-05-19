@@ -1,28 +1,32 @@
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs/Observable';
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Todo } from './todo';
+import { Injectable } from "@angular/core";
+import { Observable } from "rxjs/Observable";
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpHeaders,
+} from "@angular/common/http";
+import { environment } from "../environments/environment";
+import { Todo } from "./todo";
 
-const BASE_PATH = '/api/v1';
+const apiUrl = environment.apiUrl;
+const BASE_PATH = `${apiUrl}/api/v1`;
 
 @Injectable()
 export class TodoService {
-
-  constructor(private http: HttpClient) {
-  }
+  constructor(private http: HttpClient) {}
 
   public getAllTodos(): Observable<Todo[]> {
-    console.log('TodoService::getAllTodos was called');
+    console.log("TodoService::getAllTodos was called");
 
-    return this.http.get<Todo[]>(BASE_PATH + '/todos') as Observable<Todo[]>;
+    return this.http.get<Todo[]>(BASE_PATH + "/todos") as Observable<Todo[]>;
   }
 
   public insertTodo(todo: Todo): void {
-    console.log('TodoService::insertTodo was called: ' + todo.title);
+    console.log("TodoService::insertTodo was called: " + todo.title);
 
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    this.http.post(BASE_PATH + '/todos', todo, { headers: headers }).subscribe(
-      res => {
+    const headers = new HttpHeaders({ "Content-Type": "application/json" });
+    this.http.post(BASE_PATH + "/todos", todo, { headers: headers }).subscribe(
+      (res) => {
         console.log(res);
       },
       (err: HttpErrorResponse) => {
@@ -30,16 +34,18 @@ export class TodoService {
         console.log(err.name);
         console.log(err.message);
         console.log(err.status);
-      });
+      }
+    );
   }
 
   public searchTodos(searchText: string): Observable<Object[]> {
-    console.log('TodoService::searchTodos was called: ' + searchText);
+    console.log("TodoService::searchTodos was called: " + searchText);
 
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    const headers = new HttpHeaders({ "Content-Type": "application/json" });
     return this.http.post(
-      BASE_PATH + '/search',
+      BASE_PATH + "/search",
       { searchText: searchText },
-      { headers: headers }) as Observable<Object[]>;
+      { headers: headers }
+    ) as Observable<Object[]>;
   }
 }

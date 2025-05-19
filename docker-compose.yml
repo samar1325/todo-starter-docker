@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 
 services:
   todo-redis:
@@ -6,6 +6,12 @@ services:
     image: redis:5.0.3
     ports:
       - 6379:6379
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   todo-postgres:
     container_name: todo-postgres
@@ -16,22 +22,34 @@ services:
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_USER=todo
-      - POSTGRES_PASSWORD=todo1234
-      - POSTGRES_DB=todo
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo1234
+      POSTGRES_DB: todo
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   todo-elastic:
     container_name: todo-elastic
-    image: elasticsearch:6.6.1
+    image: elasticsearch:7.17.10
     ports:
       - 9200:9200
       - 9300:9300
     environment:
-      - discovery.type=single-node
+      discovery.type: single-node
     volumes:
       - elastic-data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    healthcheck:
+      test: curl -s http://localhost:9200/_cluster/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   todo-api:
     container_name: todo-api
@@ -43,21 +61,26 @@ services:
     ports:
       - 3000:3000
     environment:
-      - POSTGRES_HOST=todo-postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DATABASE=todo
-      - POSTGRES_USER=todo
-      - POSTGRES_PASSWORD=todo1234
-      - REDIS_HOST=todo-redis
-      - REDIS_PORT=6379
-      - ELASTICSEARCH_HOST=todo-elastic
-      - ELASTICSEARCH_PORT=9200
+      POSTGRES_HOST: todo-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: todo
+      POSTGRES_USER: todo
+      POSTGRES_PASSWORD: todo1234
+      REDIS_HOST: todo-redis
+      REDIS_PORT: 6379
+      ELASTICSEARCH_HOST: todo-elastic
+      ELASTICSEARCH_PORT: 9200
     volumes:
+      - ./todo-api:/app
       - /app/node_modules
     depends_on:
-      - todo-redis
-      - todo-postgres
-      - todo-elastic
+      todo-postgres:
+        condition: service_healthy
+      todo-redis:
+        condition: service_healthy
+      todo-elastic:
+        condition: service_healthy
+    restart: unless-stopped
 
   todo-view:
     container_name: todo-view
@@ -68,10 +91,11 @@ services:
     ports:
       - 4200:4200
     volumes:
-      - ${PWD}/todo-view:/usr/src/app
+      - ./todo-view:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
       - todo-api
+    restart: unless-stopped
 
   todo-proxy:
     container_name: todo-proxy
@@ -84,9 +108,8 @@ services:
     depends_on:
       - todo-api
       - todo-view
+    restart: unless-stopped
 
 volumes:
   postgres-data:
   elastic-data:
-
-
